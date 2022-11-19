@@ -194,6 +194,13 @@ def traintime():
         # print-training/validation-statistics 
         print('Epoch: {} \tTraining Loss: {:.6f} \tValidation Loss: {:.6f}'.format(
             epoch, train_loss, valid_loss))
+    
+    plt.figure()
+    plt.plot(range(epochs),train_losses,label='Training Losses',linewidth=3)
+    plt.plot(range(epochs),valid_losses,label='Validation Losses',linewidth=3)
+    plt.legend(loc='upper right')
+    plt.title('Training and Validation Loss')
+    plt.show()
 
 
 
