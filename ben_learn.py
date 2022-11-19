@@ -15,6 +15,8 @@ import os
 
 # device settings -- if GPU doesn't work on WSL type in terminal: export LD_LIBRARY_PATH=/usr/lib/wsl/lib:$LD_LIBRARY_PATH
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+if torch.cuda.is_available():
+    print('using gpu')
 # device = torch.device('cpu')
 # path to training data
 train_path = r'/train_test_data/train'
@@ -22,7 +24,7 @@ train_path = r'/train_test_data/train'
 label = ['0','1','2']
 
 # read in metadata as dataframe -- this contains image paths and classfications
-df = pd.read_csv(r'train.csv')
+df = pd.read_csv(r'new_train.csv')
 # print(data)
 # mask = df['label']==0
 # all_0 = df[mask]
@@ -48,8 +50,7 @@ class ForestDataset(Dataset):
         self.df = df
         self.path = path
         self.transform = transform
-        self.labels = df['label'].to_numpy() # change this to be just the one index and not an entire array
-
+        self.labels = df['label']
     def __len__(self):
         return len(self.df)
 
@@ -58,19 +59,19 @@ class ForestDataset(Dataset):
         img_name = row['example_path'].split('/')[-1]
         img_path = os.path.join(os.getcwd()+self.path, img_name)
         image = img.imread(img_path)
+        label = row['label']
         if self.transform is not None:
             image = self.transform(image)
             image_sm = transforms.Resize(32)(image)
-            label = torch.from_numpy(self.labels)
         return image_sm, label
 
 # make datasets
 train_dataset = ForestDataset(train, train_path)
-validation_dataset = ForestDataset(train, train_path)
-
+valid_dataset = ForestDataset(valid_data, train_path)
+test_dataset = ForestDataset
 # load data 
 train_loader = DataLoader(train_dataset, batch_size = batch_size, shuffle=True, num_workers=0)
-valid_loader = DataLoader(dataset = valid_data, batch_size = batch_size, shuffle=False, num_workers=0)
+valid_loader = DataLoader(valid_dataset, batch_size = batch_size, shuffle=False, num_workers=0)
 
 
 # display images (doesn't work!)
@@ -155,9 +156,7 @@ def traintime():
         valid_loss = 0.0
 
         # training-the-model
-        model.train()
         for data, target in train_loader:
-            print('target tensor is', target)
             # move-tensors-to-GPU 
             data = data.to(device)
             target = target.to(device)
@@ -196,6 +195,27 @@ def traintime():
 
 
 traintime()
+
+
+def test_model():
+    # test-the-model
+    model.eval()  # it-disables-dropout
+    with torch.no_grad():
+        correct = 0
+        total = 0
+        for images, labels in valid_loader:
+            images = images.to(device)
+            labels = labels.to(device)
+            outputs = model(images)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+        print('Test Accuracy of the model: {} %'.format(100 * correct / total))
+
+
+# Save 
+
+torch.save(model.state_dict(), 'model.ckpt')
     # # ==================================================================================
 
     # # DAN's TUTORIAL
