@@ -21,6 +21,12 @@ if torch.cuda.is_available():
 # device = torch.device('cpu')
 # path to training data
 train_path = r'/train_test_data/train'
+test_path = r'/train_test_data/test'
+
+test_list = os.listdir('.'+test_path)
+print(test_list)
+test_df = pd.DataFrame(test_list, columns=['name'])
+print(test_df)
 # classification labels
 label = ['0','1','2']
 
@@ -42,7 +48,7 @@ batch_size = 25
 learning_rate = 0.001
 
 # split dataframe randomly into training data and validation data
-train, valid_data = train_test_split(df, stratify=df['label'], test_size=0.2)
+train, valid_data = train_test_split(df, stratify=df['label'], test_size=0.15)
 
 # define dataset class particular to my data
 class ForestDataset(Dataset):
@@ -66,13 +72,34 @@ class ForestDataset(Dataset):
             image_sm = transforms.Resize(256)(image)
         return image_sm, label
 
+
+class TestDataset(Dataset):
+    def __init__(self, df, path , transform = transforms.functional.to_tensor):
+        super().__init__()
+        self.df = df
+        self.path = path
+        self.transform = transform
+    def __len__(self):
+        return len(self.df)
+
+    def __getitem__(self,index):
+        row = self.df.iloc[index]
+        img_name = row['name']
+        img_path = os.path.join(os.getcwd()+self.path, img_name)
+        image = img.imread(img_path)
+        if self.transform is not None:
+            image = self.transform(image)
+            image_sm = transforms.Resize(256)(image)
+        return image
+
+
 # make datasets
 train_dataset = ForestDataset(train, train_path)
 valid_dataset = ForestDataset(valid_data, train_path)
-test_dataset = ForestDataset
-# load data 
+test_dataset = TestDataset(test_df, test_path )# load data 
 train_loader = DataLoader(train_dataset, batch_size = batch_size, shuffle=True, num_workers=0)
 valid_loader = DataLoader(valid_dataset, batch_size = batch_size, shuffle=False, num_workers=0)
+test_loader = DataLoader(test_dataset, batch_size = batch_size, shuffle=False, num_workers=0)
 
 
 # display images (doesn't work!)
@@ -135,7 +162,7 @@ class CNN(nn.Module):
 
 
 # ALEXNET
-model = mdls.alexnet().to(device)
+model = mdls.resnet18().to(device)
 
 # optimization settings
 # model = CNN().to(device)  # -- from tutorial https://www.pluralsight.com/guides/image-classification-with-pytorch
@@ -194,11 +221,16 @@ def traintime():
         # print-training/validation-statistics 
         print('Epoch: {} \tTraining Loss: {:.6f} \tValidation Loss: {:.6f}'.format(
             epoch, train_loss, valid_loss))
+    
+
+    with open("training_loss.txt", "w") as output:
+        output.write(str(train_losses))
+    with open("validation_loss.txt", "w") as output:
+        output.write(str(valid_losses))
 
 
 
-
-traintime()
+# traintime()
 
 
 def test_model():
@@ -207,27 +239,50 @@ def test_model():
     with torch.no_grad():
         correct = 0
         total = 0
-        for images, labels in valid_loader:
+        for images in test_loader:
             images = images.to(device)
-            labels = labels.to(device)
             outputs = model(images)
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
-        print('Test Accuracy of the model: {} %'.format(100 * correct / total))
 
-
+test_model()
 # Save 
 
 torch.save(model.state_dict(), 'model.ckpt')
     # # ==================================================================================
 
-    # # DAN's TUTORIAL
+def test():
+    model = ResNet18_Weights(*args, **kwargs)
+    model.load_state_dict(torch.load(path+'model.ckpt'))
+    model.eval()
+
+
+class_mapping = [
+    "0",
+    "1",
+    "2",   
+]
+
+
+def predict(model, input, target, class_mapping):
+    model.eval()
+    with torch.no_grad():
+        predictions = model(input)
+        # Tensor (1, 10) -> [ [0.1, 0.01, ..., 0.6] ]
+        predicted_index = predictions[0].argmax(0)
+        predicted = class_mapping[predicted_index]
+        expected = class_mapping[target]
+    return predicted, expected
+
+
+
+
 # for the loss plots it basically requires you to save the accuary and loss at each epoch. the way I thought of doing it was  to try and get it to output
 # them to a np.array and then just plot them against an np.range(#epochs). 
 
 #I can see in line 187-190 you are making the right thing, just wondering if you also get accuary out of it as well as that would be a usefu thing for the report
-'''
+
 acc = history.history['accuracy']
 val_acc = history.history['val_accuracy']
 
@@ -248,4 +303,4 @@ plt.plot(epochs_range, loss, label='Training Loss')
 plt.plot(epochs_range, val_loss, label='Validation Loss')
 plt.legend(loc='upper right')
 plt.title('Training and Validation Loss')
-plt.show()'''
+plt.show()
