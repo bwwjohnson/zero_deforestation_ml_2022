@@ -8,6 +8,7 @@ import torch.nn as nn
 from torch.utils.data import Dataset
 import torchvision
 import torchvision.transforms as transforms
+import torchvision.models as mdls
 from sklearn.model_selection import train_test_split
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
@@ -62,7 +63,7 @@ class ForestDataset(Dataset):
         label = row['label']
         if self.transform is not None:
             image = self.transform(image)
-            image_sm = transforms.Resize(32)(image)
+            image_sm = transforms.Resize(256)(image)
         return image_sm, label
 
 # make datasets
@@ -80,7 +81,7 @@ def imshow(t_image, ax=None, title=None, normalize=False):
         fig, ax = plt.subplots()
     # np_image = image.np().transpose((1, 2, 0))
     image = transforms.ToPILImage()(t_image).convert("RGB")
-    image_sm = transforms.Resize(32)(image)
+    image_sm = transforms.Resize(256)(image)
     if normalize:
         np_image = t_image.numpy()
         mean = np_image.mean()
@@ -133,8 +134,11 @@ class CNN(nn.Module):
         return x
 
 
+# ALEXNET
+model = mdls.alexnet().to(device)
+
 # optimization settings
-model = CNN().to(device)  # -- from tutorial https://www.pluralsight.com/guides/image-classification-with-pytorch
+# model = CNN().to(device)  # -- from tutorial https://www.pluralsight.com/guides/image-classification-with-pytorch
 
 # from pytorch website -- https://pytorch.org/tutorials/advanced/neural_style_tutorial.html?highlight=image%20classify
 
