@@ -227,6 +227,13 @@ def traintime():
         output.write(str(train_losses))
     with open("validation_loss.txt", "w") as output:
         output.write(str(valid_losses))
+    plt.figure()
+    
+    plt.plot(range(epochs),train_losses,label='Training Losses',linewidth=3)
+    plt.plot(range(epochs),valid_losses,label='Validation Losses',linewidth=3)
+    plt.legend(loc='upper right')
+    plt.title('Training and Validation Loss')
+    plt.show()
 
 
 
