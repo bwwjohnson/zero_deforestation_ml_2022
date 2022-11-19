@@ -19,13 +19,12 @@ from skimage.transform import rotate, AffineTransform, warp
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
+import shutil
 # %matplotlib inline
 
-path = '' #path to save files
 #dir_path_0 = r'/content/drive/MyDrive/Hackerthon_data/0_img' #path to file for scenario 0
 #dir_path_1 = r'/content/drive/MyDrive/Hackerthon_data/1_img' #path to file for scenario 1
 #dir_path_2 = r'/content/drive/MyDrive/Hackerthon_data/2_img' #path to file for scenario 2
-
 
 path = os.getcwd()
 df = pd.read_csv(path+'/train.csv')
@@ -65,7 +64,11 @@ def percentage_matcher(n_iter,df,df_0,df_1,df_2,path,outpath):
   lengths = np.array([len_0,len_1,len_2]) #put the starting number of flies for each scenario into an array
   percentages = (lengths)/np.sum(lengths) #calculate the starting percentages of each image in the three scenarios
   folders = np.array(['0_img','1_img','2_img'])
-  
+  if os.path.exists(outpath):
+    shutil.rmtree(outpath)
+    os.mkdir(outpath)
+  else:
+    os.mkdir(outpath)
   for i in range(n_iter):
     min_length = min(lengths)
     boolarr = lengths == min_length #identify scenario with less events
