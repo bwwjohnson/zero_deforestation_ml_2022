@@ -1,0 +1,3 @@
+# ignore images 
+*.png
+train_test_data
